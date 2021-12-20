@@ -1,6 +1,6 @@
 # Energy Quants
 
-*******************************************************************************
+
 This organisation contains the necessary infrastructure to bootstrap a Python
 analytics environment and some basic tools for quantitative analytics.
 
