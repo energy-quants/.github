@@ -1,12 +1,12 @@
-## Hi there 👋
+# Energy Quants
 
-<!--
+*******************************************************************************
+This organisation contains the necessary infrastructure to bootstrap a Python
+analytics environment and some basic tools for quantitative analytics.
 
-**Here are some ideas to get you started:**
+> #### :warning: WARNING! <br>
+> This organisation is used for testing purposes and is *pre-alpha* quality!<br>
+> You probably shouldn't use it for anything, but feel free to start a
+> [discussion](https://github.com/energy-quants/.github/discussions/new)
 
-🙋‍♀️ A short introduction - what is your organization all about?
-🌈 Contribution guidelines - how can the community get involved?
-👩‍💻 Useful resources - where can the community find your docs? Is there anything else the community should know?
-🍿 Fun facts - what does your team eat for breakfast?
-🧙 Remember, you can do mighty things with the power of [Markdown](https://docs.github.com/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
--->
+
