@@ -1,0 +1,73 @@
+name: Cleanup Images
+
+on:
+  # https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows#workflow_call
+  workflow_call:
+    inputs:
+      org:
+        required: true
+        type: string
+      repo:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+    secrets:
+      ghcr_token:
+        required: true
+
+
+jobs:
+  get-untagged-images:
+    runs-on: ubuntu-latest
+    outputs:
+      ids: ${{ steps.untagged_images.outputs.ids }}
+    steps:
+      - name: Get Image Ids
+        id: get_images
+        # https://github.com/octokit/request-action
+        uses: octokit/request-action@v2.x
+        env:
+          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
+        with:
+          org: ${{ inputs.org }}
+          repo: ${{ inputs.repo }}
+          image: ${{ inputs.image }}
+          # https://docs.github.com/en/rest/reference/packages#get-all-package-versions-for-a-package-owned-by-an-organization
+          route: GET /orgs/{org}/packages/container/{repo}%2F{image}/versions
+      - name: Get Untagged Images
+        id: untagged_images
+        shell: bash
+        run: |
+          set -e
+          data=$(echo -e ${{ toJSON(steps.get_images.outputs.data) }})
+          ids=$(echo "${data}" | jq -c '[.[] | select(.metadata.container.tags | length == 0) | .id]')
+          echo "::set-output name=ids::${ids}"
+      - name: Show Untagged Images
+        shell: bash
+        env:
+          UNTAGGED_IDS: ${{ steps.untagged_images.outputs.ids }}
+        run: |
+          for version in $(echo "${UNTAGGED_IDS}" | jq -c '.[]') ; do
+            echo $version
+          done
+  delete-image:
+    runs-on: ubuntu-latest
+    needs: get-untagged-images
+    strategy:
+      matrix:
+        id: ${{fromJSON(needs.get-untagged-images.outputs.ids)}}
+    steps:
+      - name: Delete Image
+        # https://github.com/octokit/request-action
+        uses: octokit/request-action@v2.x
+        env:
+          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
+        with:
+          org: ${{ inputs.org }}
+          repo: ${{ inputs.repo }}
+          image: ${{ inputs.image }}
+          version: ${{ matrix.id }}
+          # https://docs.github.com/en/rest/reference/packages#delete-package-version-for-an-organization
+          route: DELETE /orgs/{org}/packages/container/{repo}%2F{image}/versions/{version}
