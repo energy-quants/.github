@@ -55,6 +55,7 @@ jobs:
   delete-image:
     runs-on: ubuntu-latest
     needs: get-untagged-images
+    if: ${{ needs.get-untagged-images.outputs.ids != '[]' }}
     strategy:
       matrix:
         id: ${{fromJSON(needs.get-untagged-images.outputs.ids)}}
