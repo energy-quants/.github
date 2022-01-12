@@ -43,7 +43,7 @@ jobs:
         id: pr_image
         shell: bash
         run: |
-          set -e
+          set -euox pipefail
           data=$(echo -e ${{ toJSON(steps.get_images.outputs.data) }})
           id=$(echo "${data}" | jq -c ".[] | select(.metadata.container.tags[] | contains(\"pr-${{ inputs.pr }}\")) | .id")
           echo "::set-output name=id::${id}"
