@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euox pipefail
           data=$(echo -e ${{ toJSON(steps.get_images.outputs.data) }})
-          id=$(echo "${data}" | jq -c ".[] | select(.metadata.container.tags[] | contains(\"pr-${{ inputs.pr }}\")) | .id")
+          id=$(echo "${data}" | jq -c "[.[] | select(.metadata.container.tags[] | contains(\"pr-${{ inputs.pr }}\")) | .id]")
           echo "::set-output name=id::${id}"
 
   delete-image:
@@ -54,7 +54,7 @@ jobs:
     if: ${{ needs.get-pr-image.outputs.id != '' }}
     strategy:
       matrix:
-        id: [${{ needs.get-pr-image.outputs.id }}]
+        id: ${{ fromJSON(needs.get-pr-image.outputs.id) }}
     steps:
       - name: Delete Image
         # https://github.com/octokit/request-action
