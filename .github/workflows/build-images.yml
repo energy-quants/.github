@@ -8,6 +8,11 @@ on:
         required: true
 
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
 jobs:
   find_images:
     runs-on: ubuntu-latest
