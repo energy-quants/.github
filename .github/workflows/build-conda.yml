@@ -75,6 +75,7 @@ jobs:
         run: |
           set -euox pipefail
           devtool --version
+          git describe --long
           devtool conda build
           echo "Use the below commands to install the package:" >> "${GITHUB_STEP_SUMMARY}"
           echo '```bash' >> "${GITHUB_STEP_SUMMARY}"
