@@ -1,0 +1,50 @@
+name: github/release
+
+on:
+  # https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows#workflow_call
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        description: 'The tag name of the release.'
+        required: true
+      draft:
+        type: boolean
+        description: 'Whether to create a draft release.'
+        required: false
+        default: true
+
+
+permissions:
+  contents: write
+
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - id: checkout_source
+        name: Checkout Source
+        # https://github.com/actions/checkout
+        uses: actions/checkout@v3
+
+      - id: create_release
+        name: Create Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euox pipefail
+          # https://cli.github.com/manual/gh_release_create
+          if [[ "${{ inputs.draft }}" == "true" ]]; then
+            gh release create '${{ inputs.tag }}' \
+              --repo='${{ github.repository }}' \
+              --title='Release ${{ inputs.tag }}' \
+              --generate-notes \
+              --draft
+          else
+            gh release create '${{ inputs.tag }}' \
+              --repo='${{ github.repository }}' \
+              --title='Release ${{ inputs.tag }}' \
+              --generate-notes
+          fi
