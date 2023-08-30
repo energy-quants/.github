@@ -58,6 +58,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euox pipefail
           # https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#create-a-commit-status
           url=$(gh run  list --repo='${{ github.repository }}' --workflow='publish/conda' --limit 1 --json 'url' --jq '.[].url')
           gh api \
