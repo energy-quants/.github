@@ -25,10 +25,8 @@ on:
 
 
 jobs:
-
-  publish_package:
-    name: Publish Conda Package
-    if: github.event.workflow_run.conclusion == 'success'
+  debug:
+    name: Show Debug Info
     runs-on: ubuntu-latest
     steps:
       - id: show_debug_info
@@ -52,6 +50,54 @@ jobs:
           which git
           git --version
           echo "::endgroup::"
+
+  on_requested:
+    name: Set Pending Status
+    if: github.event.action == 'requested'
+    runs-on: ubuntu-latest
+    steps:
+      - id: set_status
+        name: Set Status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euox pipefail
+          # https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#create-a-commit-status
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_commit.id }} \
+            -f state='pending' \
+            -f context='publish/conda'
+
+  on_failure:
+    name: Set Failed Status
+    if: github.event.action == 'completed' && github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - id: set_status
+        name: Set Status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euox pipefail
+          # https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#create-a-commit-status
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_commit.id }} \
+            -f state='failure' \
+            -f context='publish/conda'
+
+  publish_package:
+    name: Publish Conda Package
+    if: github.event.action == 'completed' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
       - id: set_pending_status
         name: Set Status
         shell: bash
@@ -109,7 +155,7 @@ jobs:
             devtool conda publish -v --debug --owner='energy-quants' --filepath="${filepath}"
           done
       - id: set_final_status
-        name: Set Status
+        name: Set Final Status
         if: always()
         shell: bash
         env:
