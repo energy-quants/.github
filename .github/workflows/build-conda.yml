@@ -22,10 +22,10 @@ on:
 
 
 jobs:
-
-  build_package:
-    name: Build Conda Package
+  debug:
+    name: Show Debug Info
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - id: show_debug_info
         name: Show Debug Info
@@ -48,6 +48,14 @@ jobs:
           which git
           git --version
           echo "::endgroup::"
+
+
+  build_package:
+    name: Build Conda Package
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.build_package.outputs.packages }}
+    steps:
       - id: setup_micromamba
         name: Create Python Environment
         # https://github.com/mamba-org/setup-micromamba
@@ -63,6 +71,7 @@ jobs:
           create-args: >-
             python${{ inputs.python-version }}
             eq-devtools${{ inputs.devtools-version }}
+
       - id: checkout_source
         name: Checkout Source
         # https://github.com/actions/checkout
@@ -70,6 +79,7 @@ jobs:
         with:
           ref: ${{ (github.head_ref == '' && github.ref_name) || github.event.after }}
           fetch-depth: 0
+
       - id: build_package
         name: Build Package
         shell: bash -l {0}
@@ -78,11 +88,37 @@ jobs:
           devtool --version
           git describe --long
           devtool conda build
-          echo "Use the below commands to install the package:" >> "${GITHUB_STEP_SUMMARY}"
+          echo "Use the below commands to download the package:" >> "${GITHUB_STEP_SUMMARY}"
           echo '```bash' >> "${GITHUB_STEP_SUMMARY}"
           echo "rm -rf .build/conda/dist" >> "${GITHUB_STEP_SUMMARY}"
           echo "gh run download $GITHUB_RUN_ID -n conda-channel --dir .build/conda/dist" >> "${GITHUB_STEP_SUMMARY}"
           echo '```' >> "${GITHUB_STEP_SUMMARY}"
+          python <<SCRIPT
+          import json
+          import os
+          from pathlib import Path
+          dist = Path('.build/conda/dist')
+          packages = [
+              pth.relative_to(dist).as_posix() for pth
+              in dist.rglob('**/*.conda')
+          ]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              fh.write(f"packages={json.dumps(packages)}")
+          SCRIPT
+
+      - id: show_package_contents
+        name: Show Package Contents
+        shell: bash -l {0}
+        run: |
+          set -euox pipefail
+          for filepath in  $(find "./.build/conda/dist" -type f -name "*.conda"); do
+            filename=$(basename "${filepath}" '.conda')
+            echo "::group::${filename}"
+            cph extract --prefix='${{ runner.temp }}' "${filepath}"
+            tree -aC "${{ runner.temp }}/${filename}" | tee "${GITHUB_STEP_SUMMARY}"
+            echo "::endgroup::"
+          done
+
       - id: publish_artifact
         name: Publish Artifact
         # https://github.com/actions/upload-artifact
@@ -90,3 +126,28 @@ jobs:
         with:
           name: conda-channel
           path: .build/conda/dist
+
+  show_package_contents:
+    name: Show Contents
+    needs: build_package
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.build_package.outputs.packages) }}
+    steps:
+      - id: download_artifact
+        name: Download Artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euox pipefail
+          gh run download $GITHUB_RUN_ID -n conda-channel --repo $GITHUB_REPOSITORY --dir conda-local
+      - id: show_contents
+        name: Show Package Contents
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
+        run: |
+          set -euox pipefail
+          tree ./conda-local
