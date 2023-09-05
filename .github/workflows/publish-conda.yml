@@ -28,6 +28,7 @@ jobs:
   debug:
     name: Show Debug Info
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - id: show_debug_info
         name: Show Debug Info
@@ -55,6 +56,8 @@ jobs:
     name: Set Pending Status
     if: github.event.action == 'requested'
     runs-on: ubuntu-latest
+    permissions:
+      statuses: write
     steps:
       - id: set_status
         name: Set Status
@@ -76,6 +79,8 @@ jobs:
     name: Set Failed Status
     if: github.event.action == 'completed' && github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
+    permissions:
+      statuses: write
     steps:
       - id: set_status
         name: Set Status
@@ -97,6 +102,8 @@ jobs:
     name: Publish Conda Package
     if: github.event.action == 'completed' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      statuses: write
     steps:
       - id: set_pending_status
         name: Set Status
