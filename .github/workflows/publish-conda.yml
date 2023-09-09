@@ -152,7 +152,6 @@ jobs:
         shell: bash -l {0}
         env:
           GITHUB_TOKEN: ${{ secrets.token }}
-          TEST_1: 'VALUE_1'
         run: |
           set -euox pipefail
           devtool --version
