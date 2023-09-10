@@ -8,7 +8,7 @@ on:
         type: string
         description: 'The `micromamba` version to use.'
         required: false
-        default: '1.5.0-0'
+        default: '1.5.1-0'
       python-version:
         type: string
         description: 'The Python version to use.'
@@ -51,10 +51,11 @@ jobs:
 
 
   build_package:
-    name: Build Conda Package
+    name: Build Package
     runs-on: ubuntu-latest
     outputs:
       packages: ${{ steps.build_package.outputs.packages }}
+      package_info: ${{ steps.build_package.outputs.package_info }}
     steps:
       - id: setup_micromamba
         name: Create Python Environment
@@ -75,7 +76,7 @@ jobs:
       - id: checkout_source
         name: Checkout Source
         # https://github.com/actions/checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ (github.head_ref == '' && github.ref_name) || github.event.after }}
           fetch-depth: 0
@@ -99,12 +100,24 @@ jobs:
           import os
           from pathlib import Path
           dist = Path('.build/conda/dist')
-          packages = [
-              pth.relative_to(dist).as_posix() for pth
+          filepaths = [
+              pth.relative_to(dist) for pth
               in dist.rglob('**/*.conda')
           ]
+          packages = {}
+          for filepath in filepaths:
+              package, version, buildstr = filepath.stem.rsplit('-', maxsplit=2)
+              packages[package] = {
+                  'package': package,
+                  'version': version,
+                  'buildstr': buildstr,
+                  'filepath': filepath.as_posix(),
+              }
+
+          print(f"{packages=}")
           with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-              fh.write(f"packages={json.dumps(packages)}")
+              fh.write(f"packages={json.dumps(list(packages))}\n")
+              fh.write(f"package_info={json.dumps(packages)}\n")
           SCRIPT
 
       - id: show_package_contents
@@ -134,3 +147,63 @@ jobs:
           name: conda-channel
           path: .build/conda/dist
 
+  test_package:
+    name: Test Package
+    needs: build_package
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.build_package.outputs.packages) }}
+        python: ["3.10", "3.11"]
+    steps:
+      - id: setup_micromamba
+        name: Create Python Environment
+        # https://github.com/mamba-org/setup-micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: ${{ inputs.micromamba-version }}
+          cache-environment: true
+          condarc: |
+            channels:
+              - conda-forge
+              - energy-quants
+          environment-name: test
+          create-args: >-
+            python${{ inputs.python-version }}
+            eq-devtools${{ inputs.devtools-version }}
+
+      - id: checkout_source
+        name: Checkout Source
+        # https://github.com/actions/checkout
+        uses: actions/checkout@v4
+
+      - id: download_artifact
+        name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: conda-channel
+          path: conda-local
+
+      - id: install_test_dependencies
+        name: Install Dependencies
+        shell: bash -l {0}
+        run: |
+          set -euox pipefail
+          package_info='${{ needs.build_package.outputs.package_info }}'
+          echo "${package_info}"
+          version=$(echo "${package_info}" | jq -r '."${{ matrix.package }}".version')
+          set +x
+          micromamba install \
+            -c ./conda-local \
+            -f requirements/pypi/test.txt \
+            "${{ matrix.package }}=${version}" \
+            --yes
+
+      - id: test_package
+        name: Test Package
+        shell: bash -l {0}
+        run: |
+          # pytest
+          set -euox pipefail
+          pytest
