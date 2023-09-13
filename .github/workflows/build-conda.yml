@@ -139,8 +139,8 @@ jobs:
             echo "::endgroup::"
           done
 
-      - id: publish_artifact
-        name: Publish Artifact
+      - id: publish_conda_package
+        name: Publish Conda Package
         # https://github.com/actions/upload-artifact
         uses: actions/upload-artifact@v3
         with:
@@ -207,3 +207,12 @@ jobs:
           # pytest
           set -euox pipefail
           pytest
+          tree -a ./
+
+      - id: publish_test_results
+        name: Publish Test Results
+        # https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.package }}-${{ matrix.python }}
+          path: .build/conda/test/
