@@ -170,8 +170,7 @@ jobs:
               - energy-quants
           environment-name: test
           create-args: >-
-            python${{ inputs.python-version }}
-            eq-devtools${{ inputs.devtools-version }}
+            python=${{ matrix.python }}
 
       - id: checkout_source
         name: Checkout Source
@@ -206,7 +205,15 @@ jobs:
         run: |
           # pytest
           set -euox pipefail
-          pytest
+          pyver=$(echo 'py${{ matrix.python }}' | tr -d '.')
+          path=".build/conda/test/${{ matrix.package }}/${pyver}/"
+          pytest \
+            --self-contained-html \
+            --html="${path}/html/test-report.html" \
+            --junit-xml="${path}/test-results.xml" \
+            --cov-report=html:"${path}/html/cov" \
+            --cov-report=xml:"${path}/coverage.xml"
+
           tree -a ./
 
       - id: publish_test_results
@@ -214,5 +221,23 @@ jobs:
         # https://github.com/actions/upload-artifact
         uses: actions/upload-artifact@v3
         with:
-          name: test-results-${{ matrix.package }}-${{ matrix.python }}
+          name: test-results
           path: .build/conda/test/
+
+      - id: create_lockfile
+        name: Create Lockfile
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          micromamba remove --yes $(cat requirements/pypi/test.txt | tr '\n' ' ')
+          path=$(echo 'lockfile/${{ matrix.package }}/py${{ matrix.python }}' | tr -d '.')
+          mkdir -p "${path}"
+          micromamba env export --explicit | tee "${path}/conda.lock"
+
+      - id: publish_lockfile
+        name: Publish Lockfile
+        # https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: conda.lock
+          path: "./lockfile"
