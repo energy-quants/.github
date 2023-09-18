@@ -213,8 +213,6 @@ jobs:
             --cov-report=html:"${path}/html/cov" \
             --cov-report=xml:"${path}/coverage.xml"
 
-          tree -a ./
-
       - id: publish_test_results
         name: Publish Test Results
         # https://github.com/actions/upload-artifact
