@@ -8,7 +8,7 @@ on:
         type: string
         description: 'The `micromamba` version to use.'
         required: false
-        default: '1.4.9-0'
+        default: '1.5.1-0'
       python-version:
         type: string
         description: 'The Python version to use.'
@@ -28,7 +28,7 @@ on:
         type: string
         description: 'The `ruff` version to use.'
         required: false
-        default: '0.0.285'
+        default: '0.0.292'
 
 
 concurrency:
@@ -106,10 +106,12 @@ jobs:
             echo "patch_file=${filename}" >> "${GITHUB_OUTPUT}"
             echo "Use the below commands to apply the patch:" >> "${GITHUB_STEP_SUMMARY}"
             echo '```bash' >> "${GITHUB_STEP_SUMMARY}"
-            echo "rm -f $filename" >> "${GITHUB_STEP_SUMMARY}"
-            echo "gh run download $GITHUB_RUN_ID -n $filename" >> "${GITHUB_STEP_SUMMARY}"
-            echo "git apply $filename" >> "${GITHUB_STEP_SUMMARY}"
-            echo "git commit -am "Fix lint" && git push" >> "${GITHUB_STEP_SUMMARY}"
+            echo "rm -f $filename \\" >> "${GITHUB_STEP_SUMMARY}"
+            echo "&& gh run download $GITHUB_RUN_ID -n $filename \\" >> "${GITHUB_STEP_SUMMARY}"
+            echo "&& git stash \\" >> "${GITHUB_STEP_SUMMARY}"
+            echo "&& git apply $filename \\" >> "${GITHUB_STEP_SUMMARY}"
+            echo "&& git commit -am 'Fix lint' && git push \\" >> "${GITHUB_STEP_SUMMARY}"
+            echo "&& git stash pop" >> "${GITHUB_STEP_SUMMARY}"
             echo '```' >> "${GITHUB_STEP_SUMMARY}"
             echo '```diff' >> "${GITHUB_STEP_SUMMARY}"
             cat "${filename}" >> "${GITHUB_STEP_SUMMARY}"
