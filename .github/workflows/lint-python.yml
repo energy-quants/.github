@@ -28,7 +28,7 @@ on:
         type: string
         description: 'The `ruff` version to use.'
         required: false
-        default: '0.0.292'
+        default: '0.1.2'
 
 
 concurrency:
