@@ -14,11 +14,6 @@ on:
         description: 'The Python version to use.'
         required: false
         default: '3.11'
-      black-version:
-        type: string
-        description: 'The `black` version to use.'
-        required: false
-        default: '23.7.0'
       isort-version:
         type: string
         description: 'The `isort` version to use.'
@@ -28,7 +23,7 @@ on:
         type: string
         description: 'The `ruff` version to use.'
         required: false
-        default: '0.1.2'
+        default: '0.1.3'
 
 
 concurrency:
@@ -75,7 +70,6 @@ jobs:
           environment-name: lint
           create-args: >-
             python=${{ inputs.python-version }}
-            black=${{ inputs.black-version }}
             isort=${{ inputs.isort-version }}
             ruff=${{ inputs.ruff-version }}
       - id: checkout_source
@@ -91,7 +85,7 @@ jobs:
           ruff check --fix ./src
           exitcode=$?
           set -e
-          black --preview ./src
+          ruff format --preview ./src
           isort ./src
           filename="lint-src.patch"
           git diff --no-color > "${filename}"
