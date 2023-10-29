@@ -120,6 +120,28 @@ jobs:
               fh.write(f"package_info={json.dumps(packages)}\n")
           SCRIPT
 
+      - id: show_recipe
+        name: Show Rendered Recipe
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          printf "\n<hr>\n\n" >> "${GITHUB_STEP_SUMMARY}"
+          echo "### Conda Recipe" >> "${GITHUB_STEP_SUMMARY}"
+          printf '\n<details>\n' >> "${GITHUB_STEP_SUMMARY}"
+          echo "<summary><tt><b>recipe.yaml</b></tt></summary>" >> "${GITHUB_STEP_SUMMARY}"
+          printf '\n```yaml\n' >> "${GITHUB_STEP_SUMMARY}"
+          cat .build/conda/recipe/recipe.yaml >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+          printf '\n</details>\n' >> "${GITHUB_STEP_SUMMARY}"
+
+      - id: publish_recipe
+        name: Publish Conda Recipe
+        # https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: recipe.yaml
+          path: .build/conda/recipe/recipe.yaml
+
       - id: show_package_contents
         name: Show Package Contents
         shell: bash -l {0}
@@ -136,6 +158,7 @@ jobs:
             printf '\n```\n' >> "${GITHUB_STEP_SUMMARY}"
             tree -aC "${{ runner.temp }}/${filename}" | tee -a "${GITHUB_STEP_SUMMARY}"
             echo '```' >> "${GITHUB_STEP_SUMMARY}"
+            printf '\n</details>\n' >> "${GITHUB_STEP_SUMMARY}"
             echo "::endgroup::"
           done
 
