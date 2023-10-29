@@ -195,7 +195,7 @@ jobs:
           set +x
           micromamba install \
             -c ./conda-local \
-            -f requirements/pypi/test.txt \
+            -f requirements.d/pypi/test.txt \
             "${{ matrix.package }}=${version}" \
             --yes
 
@@ -227,7 +227,7 @@ jobs:
         shell: bash -l {0}
         run: |
           set -euo pipefail
-          micromamba remove --yes $(cat requirements/pypi/test.txt | tr '\n' ' ')
+          micromamba remove --yes $(cat requirements.d/pypi/test.txt | tr '\n' ' ')
           path=$(echo 'lockfile/${{ matrix.package }}/py${{ matrix.python }}' | tr -d '.')
           mkdir -p "${path}"
           micromamba env export --explicit | tee "${path}/conda.lock"
