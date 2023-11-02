@@ -11,7 +11,7 @@ on:
         type: string
         description: 'The `micromamba` version to use.'
         required: false
-        default: '1.5.0-0'
+        default: '1.5.1-0'
       python-version:
         type: string
         description: 'The Python version to use.'
@@ -21,7 +21,7 @@ on:
         type: string
         description: 'The `eq-devtools` version to use.'
         required: false
-        default: '>=0.3.2'
+        default: '>=0.6.0'
 
 
 jobs:
@@ -156,8 +156,24 @@ jobs:
           set -euox pipefail
           devtool --version
           tree ./conda-local
+          if [[ "${{ github.event.workflow_run.event }}" == 'pull_request' ]]; then
+            owner="${{ github.event.workflow_run.head_repository.owner.login }}"
+            branch="${{ github.event.workflow_run.head_branch }}"
+            pr_number=$(
+              gh pr \
+                --repo='${{ github.repository }}' \
+                --json 'number' \
+                --jq '.number' \
+                view \
+                "${owner}:${branch}"
+            )
+            tag="pr-${pr_number}"
+          else
+            tag='latest'
+          fi
           for filepath in  $(find "./conda-local" -type f -name "*.conda"); do
-            devtool conda publish -v --debug --owner='energy-quants' --filepath="${filepath}"
+            devtool conda publish --owner='energy-quants' --filepath="${filepath}"
+            devtool conda publish --owner='energy-quants' --tag="${tag}" --filepath="${filepath}"
           done
       - id: set_final_status
         name: Set Final Status
